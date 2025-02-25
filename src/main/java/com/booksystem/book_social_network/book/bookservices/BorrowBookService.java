@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 
 import com.booksystem.book_social_network.book.Book;
 import com.booksystem.book_social_network.book.BookRepository;
+import com.booksystem.book_social_network.exception.InvalidBookException;
 import com.booksystem.book_social_network.transationhistory.BookTransactionHistory;
 import com.booksystem.book_social_network.transationhistory.BookTransactionHistoryRepository;
 import com.booksystem.book_social_network.user.User;
@@ -15,20 +16,27 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class BorrowBookService {
-    /*
-     * check from the book is valid (is sharable, and not archieved, and book is not
-     * borrowed)
-     * save in history, book with its user
-     * 
-     */
+  
     private final BookRepository bookRepo;
     private final BookTransactionHistoryRepository historyRepo;
 
     public long execute(long id, Authentication authentication) {
         Book book = bookRepo.findById(id).orElseThrow(() -> new EntityNotFoundException("book is not found : " + id));
-        if (!isBookAvailable(book)) {
-            throw new IllegalArgumentException();
+
+        if (!book.isShareable() || book.isArchived()) {
+            throw new InvalidBookException("can't borrow this book : " + id);
         }
+
+        if (historyRepo.isBookBorrowed(id)) {
+            throw new InvalidBookException("book is already borrowed : " + id);
+        }
+
+        User user = (User) authentication.getPrincipal();
+        
+        if (book.getCreatedBy().equals(user.getEmail())){
+            throw new InvalidBookException("you can't borrow your book : " + id);
+        }
+
         BookTransactionHistory history = BookTransactionHistory.builder()
                 .book(book)
                 .user((User) authentication.getPrincipal())
@@ -41,24 +49,5 @@ public class BorrowBookService {
 
     }
 
-    private boolean isBookAvailable(Book book) {
-        if (!isBookShareable(book) || isBookBorrowed(book)) {
-            return false;
-        }
-        return true;
-    }
-
-    private boolean isBookBorrowed(Book book) {
-        BookTransactionHistory history = historyRepo.findByBookId(book.getId()).orElse(null);
-        if (history == null || history.isReturned() == true || history.isReturnedApproved() == true) {
-            return false;
-        }
-        return true;
-    }
-
-    private boolean isBookShareable(Book book) {
-
-        return (!book.isArchived()) && book.isShareable();
-    }
 
 }

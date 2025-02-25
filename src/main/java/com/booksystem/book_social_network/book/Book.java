@@ -37,10 +37,10 @@ public class Book extends BaseEntity {
     @JoinColumn(name = "owner_id")
     private User owner;
 
-    @OneToMany(mappedBy = "book")
+    @OneToMany(mappedBy = "book", fetch = FetchType.LAZY)
     private List<BookTransactionHistory> histories;
 
-    @OneToMany(mappedBy = "book")
+    @OneToMany(mappedBy = "book", fetch = FetchType.LAZY)
     private List<FeedBack> feedBacks;
 
     public double getRate() {

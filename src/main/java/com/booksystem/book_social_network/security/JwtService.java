@@ -28,6 +28,7 @@ public class JwtService {
         return Jwts.builder()
                 .setSubject(user.getUsername())
                 .claim("authorities", user.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList())
+                .claim("abc", user.getId())
                 .setIssuedAt(new Date())
                 .signWith(signKey())
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION))
